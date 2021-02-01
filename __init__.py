@@ -95,6 +95,7 @@ def trigger_alert():
 @app.route('/api/get_from_query1', methods=['POST'])
 def get_from_query1():
     try:
+        conn_data = get_db_conf(hosp=request.form['hospital_id'])
         tempdict = {}
         query = """SELECT 
             tl.transactionID,
@@ -119,11 +120,10 @@ def get_from_query1():
             tl.status = 'TS05'
                 AND STR_TO_DATE(tl.cdate, '%d/%m/%Y') >= STR_TO_DATE('""" + request.form['start_date'] + """', '%d/%m/%Y')
                 AND STR_TO_DATE(tl.cdate, '%d/%m/%Y') <= STR_TO_DATE('""" + request.form['end_date'] + """', '%d/%m/%Y')"""
-               
-        con=mysql.connect()
-        cur = con.cursor()
-        cur.execute(query)
-        data = cur.fetchall()
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            data = cur.fetchall()
         for i, j in enumerate(data):
             tempdict[i] = {'transactionID':j[0], 'PatientID_TreatmentID':j[1], 'patientName':j[2], 'name':j[3], 'memberID':j[4], 'refno':j[5], 'Type':j[6], 'formstatus':j[7], 'status':j[8], 'statusName':j[9], 'userName':j[10], 'cdate':j[11]}
         return jsonify(tempdict)
