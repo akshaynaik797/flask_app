@@ -159,6 +159,7 @@ def update_ssdoc():
 @app.route('/api/get_portal_submitted', methods=['POST'])
 def get_from_portal_submitted():
     try:
+        conn_data = get_db_conf(hosp=request.form['hospital_id'])
         tempdict = {}
         query = """SELECT 
             pa.PatientID_TreatmentID AS pID,
@@ -191,11 +192,10 @@ def get_from_portal_submitted():
                 AND pa.flag IN ('Portal_Submit')
 		AND ( ss.flagVerify != '1' or ss.flagVerify is null )
                 AND STR_TO_DATE(pa.up_date, '%d/%m/%y') >= STR_TO_DATE('""" + request.form['date'] + """', '%d/%m/%y')"""
-
-        con=mysql.connect()
-        cur = con.cursor()
-        cur.execute(query)
-        data = cur.fetchall()
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            data = cur.fetchall()
         for i, j in enumerate(data):
             tempdict[i] = {'pID':j[0], 'referenceNo':j[1], 'alNo':j[2], 'memberID':j[3], 'hospitalID':j[4], 'ptName':j[5], 'entryDate':j[6], 'DOA':j[7], 'DOD':j[8], 'currentStatus':j[9], 'insurerTpaName':j[10], 'insurerTPA':j[11], 'submitType':j[12], 'filePath':j[13], 'fileDateTime':j[14], 'isVerify':j[15], 'srno':j[16]}
         return jsonify(tempdict)    
@@ -209,6 +209,7 @@ def get_from_portal_submitted():
 @app.route('/api/get_from_query')
 def get_from_query():
     try:
+        conn_data = get_db_conf(hosp=request.form['hospital_id'])
         query="""SELECT
             claimNo AS ReferenceNo,
             preauthNo AS PreAuthID,
