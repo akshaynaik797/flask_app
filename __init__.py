@@ -140,15 +140,15 @@ def get_from_query1():
 @app.route('/api/update_ssdoc', methods=['POST'])
 def update_ssdoc():
     try:
+        conn_data = get_db_conf(hosp=request.form['hospital_id'])
         query = """update ssDoc 
             set flagVerify = ' """ + request.form['isverify'] + """ '
         where
             srno = ' """ + request.form['srno'] + """ ' """
-
-        con=mysql.connect()
-        cur = con.cursor()
-        cur.execute(query)
-        return 'done'
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            return 'done'
     except Exception as e:
         print(e)
         return str(e)
