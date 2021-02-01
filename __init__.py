@@ -148,6 +148,7 @@ def update_ssdoc():
         with mysql.connector.connect(**conn_data) as con:
             cur = con.cursor()
             cur.execute(query)
+            con.commit()
             return 'done'
     except Exception as e:
         print(e)
@@ -238,10 +239,10 @@ def get_from_query():
             (status LIKE '%Sent To TPA/ Insurer%'
                 OR status LIKE '%In Progress%')
                 AND STR_TO_DATE(admission_date, '%d/%m/%Y') >= now() - interval 2 day"""
-        con=mysql.connect()
-        cur = con.cursor()
-        cur.execute(query)
-        data = cur.fetchall()
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            data = cur.fetchall()
         return jsonify(data)
     except Exception as e:
         return jsonify(e)
@@ -249,6 +250,7 @@ def get_from_query():
 @app.route('/api/get_from_name', methods=['POST'])
 def get_from_name():
     try:
+        conn_data = get_db_conf(hosp=request.form['hospital_id'])
         #l_date = CURDATE() - 15
         if request.form['insid'] != "I14":
             query="""SELECT
@@ -286,12 +288,12 @@ def get_from_name():
                     p_sname LIKE '%""" + request.form['name'] +"""%'
                         AND (insname  = 'I14' OR insname  = 'I04')
                         AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"""
-            
-        con=mysql.connect()
-        cur = con.cursor()
-        cur.execute(query)
-        tempdict = {}
-        data = cur.fetchall()
+
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            tempdict = {}
+            data = cur.fetchall()
         for i, j in enumerate(data):
             tempdict[i] = {'ref_no':j[0], 'preauthno':j[1], 'patient_name':j[2], 'admis_date':j[3], 'disc_date':j[4], 'insname':j[5], 'currentstatus':j[6], 'PolicyNo':j[7], 'MemberId':j[8], 'show':j[9]}
         return jsonify({'data':tempdict})    
@@ -301,6 +303,7 @@ def get_from_name():
 @app.route('/api/get_from_transaction_log', methods=['POST'])
 def get_from_transaction_log():
     try:
+        conn_data = get_db_conf(hosp=request.form['hospital_id'])
         tempdict = {}
         status_list = request.form['status'].split(',')
         for status in status_list:
@@ -319,10 +322,10 @@ def get_from_transaction_log():
                         tl.status='""" + str(status) + """'
                         AND STR_TO_DATE(cdate, '%d/%m/%Y') >= STR_TO_DATE('""" + request.form['start_date'] + """', '%d/%m/%Y')
                         AND STR_TO_DATE(cdate, '%d/%m/%Y') <= STR_TO_DATE('""" + request.form['end_date'] + """', '%d/%m/%Y')"""
-            con=mysql.connect()
-            cur = con.cursor()
-            cur.execute(query)
-            data = cur.fetchall()
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                data = cur.fetchall()
             for i, j in enumerate(data):
                 tempdict[i] = {'ptid':j[0], 'process':j[1], 'patient_status':j[2], 'status':j[3], 'status_desc':j[4], 'cdate':j[5], 'ref_no':""}
         return jsonify({'data':tempdict})
@@ -341,6 +344,7 @@ def listMyApi():
 
 @app.route('/api/OTPLogin', methods=['POST'])
 def otplogin():
+    conn_data = get_db_conf(hosp=request.form['hospital_id'])
     data=None
     otp=None
     flag=False
@@ -364,12 +368,11 @@ def otplogin():
                 'message':'mobile number field is empty'
                 }
             )    
-    try :
-        con=mysql.connect()
-        cur = con.cursor()
+    try:
         query = """select * from hospital_employee where he_mobile='%s'"""% mobile_no
-        print(query)
-        cur.execute(query)
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
         data = cur.fetchone()
         if data:
             otpgen=OtpGenerator()
@@ -377,10 +380,12 @@ def otplogin():
             otp=otpgen.sendOTP(otp,mobile_no)
             query="""UPDATE hospital_employee SET he_otp =%s, he_is_otp_verify=%s where he_mobile='%s'"""  %(int(otp),0,mobile_no)
             print(query)
-            cur.execute(query)  
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                con.commit()
             flag=True 
             msg="Otp has been sent to your mobile no="+mobile_no
-
             finalResponse['status']='success'
             finalResponse['message']=msg
         else:
@@ -388,37 +393,39 @@ def otplogin():
             otp=otpgen.generateOTP(4)
             otp=otpgen.sendOTP(otp,mobile_no)
             query = """select * from patient_master where mobile='%s'""" %mobile_no
-            print(query)
-            data=None
-            cur.execute(query)  
-            data=cur.fetchone()
-
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                data=cur.fetchone()
             if data is None:
                 query = """insert into patient_master(mobile,status,otp,otp_verify) values ('%s','%s',%s,%s)""" %(mobile_no,0,otp,0)
                 print(query)
-                cur.execute(query)
+                with mysql.connector.connect(**conn_data) as con:
+                    cur = con.cursor()
+                    cur.execute(query)
+                    con.commit()
             else:
                 query="""UPDATE patient_master SET otp =%s, otp_verify=%s where mobile='%s'"""  %(int(otp),0,mobile_no)
-                print(query) 
-                cur.execute(query)
+                print(query)
+                with mysql.connector.connect(**conn_data) as con:
+                    cur = con.cursor()
+                    cur.execute(query)
+                    con.commit()
             msg="Otp has been sent to your mobile no="+mobile_no
             finalResponse['status']='success'
             finalResponse['message']=msg
-
-            
     except Exception as e :
         print (e)
         finalResponse['status']='failed'
         finalResponse["message"]='Something went wrong.Pls try after Some time or contact Support'
         finalResponse['reason']=e.__str__()  
     finally :
-        con.commit()
-        cur.close()
         print ( "Connection has been closed successfuilly" )
         return jsonify(finalResponse)
 
 @app.route('/api/UserLogin', methods=['GET','POST'])
 def userLogin():
+    conn_data = get_db_conf(hosp=request.form['hospital_id'])
     data=None
     mobile_no=''
     otp=''
@@ -453,12 +460,12 @@ def userLogin():
 
     flag='T'
     try :
-        con=mysql.connect()
-        cur = con.cursor()
         query = """select he_name, he_mobile, status, he_hospital_id from hospital_employee where he_mobile=%s and he_otp=%s"""% (mobile_no,int(otp))
         print(query)
-        cur.execute(query)
-        data = cur.fetchone()
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            data = cur.fetchone()
         if data:
             finalResponse={
                 'APIstatus' :'success',
@@ -472,14 +479,19 @@ def userLogin():
             print("Data is present in hospital_employee")
             query="""UPDATE hospital_employee SET he_is_otp_verify=%s where he_mobile='%s' and he_otp=%s"""  %(1,mobile_no,otp)
             print(query)
-            cur.execute(query)   
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                con.commit()
             
         else:
             flag='P'
             print('No data in hospital_employee table.Looking into patient_master table')
             query = """select mobile, pname, status from patient_master  where mobile=%s and otp=%s"""%(mobile_no,int(otp))
-            cur.execute( query)
-            data = cur.fetchone()
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                data = cur.fetchone()
             if data:
                 finalResponse={
                     'APIstatus' :'success',
@@ -504,15 +516,14 @@ def userLogin():
         finalResponse["message"]='Something went wrong.Pls try after Some time or contact Support'
         finalResponse['reason']=e.__str__()
 
-    finally :
-        con.commit()
-        cur.close()
+    finally:
         print ( "Connection has been closed successfuilly" )
         return jsonify(finalResponse)    
 
 
 @app.route ( '/api/ActiveCases' , methods=['POST'] )
 def activeCases () :
+    conn_data = get_db_conf(hosp=request.form['hospital_id'])
     data = None
     mobileNo=''
     finalResponse={}
@@ -536,11 +547,11 @@ def activeCases () :
                 }
             )      
     try :
-        conn=mysql.connect()
-        cur = conn.cursor ()
         query = """select he_hospital_id from hospital_employee where he_mobile=%s"""
-        cur.execute ( query , (mobileNo ,) )
-        data = cur.fetchone ( )
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query, (mobileNo,))
+            data = cur.fetchone()
         if data:
             today=datetime.today().date()
             today = str(today.strftime("%d/%m/%Y"))
@@ -575,8 +586,10 @@ def activeCases () :
                     
             query=query1+query2+query3+query4+query5
             print(query)
-            cur.execute (query)
-            data = cur.fetchall()
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                data = cur.fetchall()
             if data:
                 finalResponse['count']=len(data)
             
@@ -602,9 +615,6 @@ def activeCases () :
         finalResponse['message']='Something went wrong.Pls try after Some time or contact Support'
         finalResponse['reason']=e.__str__()
     finally :
-        
-        conn.commit()
-        cur.close ( )
         print ( "Connection has been closed successfuilly" )
         return jsonify(finalResponse)
         # if data:
@@ -630,6 +640,7 @@ def activeCases () :
 
 @app.route ( '/api/ActiveClarification' , methods=['POST'] )
 def activeCaseClarification () :
+    conn_data = get_db_conf(hosp=request.form['hospital_id'])
     data = None
     cur=None
     finalResponse={}
@@ -653,11 +664,11 @@ def activeCaseClarification () :
                 }
             )      
     try :
-        conn=mysql.connect()
-        cur = conn.cursor ()
         query = """select he_hospital_id from hospital_employee where he_mobile=%s"""
-        cur.execute ( query , (mobileNo ,) )
-        data = cur.fetchone ( )
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute ( query , (mobileNo ,) )
+            data = cur.fetchone ( )
         if data:
             hospitalId=data[0]
             data=None
@@ -665,8 +676,10 @@ def activeCaseClarification () :
             # cur.execute(query,(hospitalId,))
             query= """select UTR_No, status from settlementutrupdate where  status in ('C', 'CR') and HospitalID='%s'""" % hospitalId
             print(query)
-            cur.execute(query)
-            data = cur.fetchall()
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                data = cur.fetchall()
             if data:
                 for row in data:
                     utrNo=row[0]
@@ -677,8 +690,10 @@ def activeCaseClarification () :
                     data1=None
                     query="""select InsurerID, PatientName from RawMasterSettlement where UTRNo='%s'"""% utrNo
                     print(query)
-                    cur.execute(query)
-                    data1 = cur.fetchone( )
+                    with mysql.connector.connect(**conn_data) as con:
+                        cur = con.cursor()
+                        cur.execute(query)
+                        data1 = cur.fetchone( )
                     if data1:
                         insID=data1[0]
                         pName=data1[1]
@@ -687,8 +702,10 @@ def activeCaseClarification () :
                         
                         query="""select name from insurer_tpa_master where TPAInsurerID='%s'"""% insID
                         print(query)
-                        cur.execute(query)
-                        data1 = cur.fetchone( )
+                        with mysql.connector.connect(**conn_data) as con:
+                            cur = con.cursor()
+                            cur.execute(query)
+                            data1 = cur.fetchone( )
                         if data1:
                             name=data1[0]
                             localdic['insurer_name']=name
@@ -703,8 +720,10 @@ def activeCaseClarification () :
 
                     data1=None      
                     query= "select clari_msg, clari_user,status,cdate from clarification_manage where utr_no='%s'" % utrNo
-                    cur.execute(query)
-                    data1 = cur.fetchall( )
+                    with mysql.connector.connect(**conn_data) as con:
+                        cur = con.cursor()
+                        cur.execute(query)
+                        data1 = cur.fetchall( )
                     if data1:
                         historyList=[]
                         for row in data1:
@@ -736,14 +755,12 @@ def activeCaseClarification () :
         finalResponse["message"]='Something went wrong.Pls try after Some time or contact Support'
         finalResponse['reason']=e.__str__()
     finally :
-        conn.commit()
-        if cur != None:
-            cur.close ( )
         return jsonify(finalResponse)
 
 
 @app.route ( '/api/StatusTrack' , methods=['POST'] )
 def statusTrack () :
+    conn_data = get_db_conf(hosp=request.form['hospital_id'])
     data = None
     patientId=''
     filepath=''
@@ -767,12 +784,12 @@ def statusTrack () :
                 }
             )   
     try :
-        conn=mysql.connect()
-        cur = conn.cursor ( )
         query = """select status, cdate , srno , type FROM (`status_track`) WHERE `PatientID_TreatmentID` = '%s'""" % patientId
         query= query+"""ORDER BY STR_TO_DATE(`cdate`, '%d/%m/%Y %H:%i:%s') DESC"""
-        cur.execute(query)
-        data = cur.fetchall()
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            data = cur.fetchall()
         if data:
             for row in data:
                 localDic = {}
@@ -786,9 +803,11 @@ def statusTrack () :
                     query="""select file_path from preauth_document where statustrackid = '%s'""" %(srno)
                 else:
                     query="""select file_path from claim_document where statustrackid = '%s' """ %(srno)
-                print(query)     
-                cur.execute(query)
-                data1=cur.fetchone()
+                print(query)
+                with mysql.connector.connect(**conn_data) as con:
+                    cur = con.cursor()
+                    cur.execute(query)
+                    data1=cur.fetchone()
                 doctype=''
                 url=''
                 if type1 == 'PreAuth':
@@ -819,8 +838,6 @@ def statusTrack () :
         finalResponse['reason']=e.__str__()
         
     finally :
-        conn.commit()
-        cur.close ( )
         print ( "Connection has been closed successfully" )
         return jsonify(finalResponse)
 
@@ -986,6 +1003,7 @@ def statusTrack () :
 
 @app.route('/api/PatientSearch', methods=['POST'])
 def patientSearch():
+    conn_data = get_db_conf(hosp=request.form['hospital_id'])
     data=None
     patientId=''
     patientName=''
@@ -1009,16 +1027,15 @@ def patientSearch():
         mobileNo = request.form['mobileNo']    
 
     try:
-        con=mysql.connect()
-        cur = con.cursor()
-        
         if patientId !='':
             query="""select pa.PatientID_TreatmentID,pa.insname,pa.admission_date,pa.p_sname,st.status,st.srno from preauth pa   \
                 left join status_track st on pa.PatientID_TreatmentID=st.PatientID_TreatmentID where pa.PatientID_TreatmentID='%s' ORDER BY st.srno DESC LIMIT 1"""%patientId
                 
             print(query)
-            cur.execute(query)
-            data=cur.fetchall()
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                data=cur.fetchall()
             if data !=None:
                 for row in data:
                     print(row)
@@ -1038,8 +1055,10 @@ def patientSearch():
         elif mobileNo !='':
             data=None
             query="""select he_hospital_id from hospital_employee where he_mobile='%s'"""%mobileNo
-            cur.execute(query)
-            data=cur.fetchone()
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                data=cur.fetchone()
             if data !=None:
                 today=datetime.today().date()
                 today = str(today.strftime("%d/%m/%Y"))
@@ -1075,8 +1094,10 @@ def patientSearch():
                 WHERE PatientID_TreatmentID=pa.PatientID_TreatmentID) GROUP BY pa.PatientID_TreatmentID """ % (dateformat,yesterday,dateformat)
                 query=query0+query1+query2+query3+query4
                 print(query)
-                cur.execute(query)
-                data=cur.fetchall()
+                with mysql.connector.connect(**conn_data) as con:
+                    cur = con.cursor()
+                    cur.execute(query)
+                    data=cur.fetchall()
                 if data:
                     for row in data:
                         print(row)
@@ -1099,8 +1120,10 @@ def patientSearch():
             query="""select pa.PatientID_TreatmentID,pa.insname,pa.admission_date,pa.p_sname, st.status from preauth pa   \
                 left join status_track st on pa.PatientID_TreatmentID=st.PatientID_TreatmentID where pa.p_sname ='%s'"""%patientName
             print(query)
-            cur.execute(query)
-            data=cur.fetchall()
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                data=cur.fetchall()
             if data !=None:
                 for row in data:
                     print(row)
@@ -1123,12 +1146,11 @@ def patientSearch():
         finalResponse['reason']=e.__str__()
         
     finally:
-        con.commit ( )
-        cur.close()
         return jsonify(finalResponse)
 
 @app.route('/api/ClarificationReply', methods=['POST'])
 def clarificationreply():
+    conn_data = get_db_conf(hosp=request.form['hospital_id'])
     utr_no=''
     date1=''
     clari_msg=''
@@ -1174,14 +1196,18 @@ def clarificationreply():
                 }
             )         
     try :
-        con=mysql.connect()
-        cur =con.cursor ( )
         query="""INSERT INTO clarification_manage (utr_no,clari_msg,clari_user,`status`)  VALUES ('%s','%s','%s','C')""" %(utr_no,clari_msg,user)
         print(query)
-        cur.execute (query)
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            con.commit()
         query="""UPDATE settlementutrupdate SET `status`='C'  where UTR_No='%s' """%utr_no 
         print(query)
-        cur.execute (query)
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            con.commit()
         # query = """UPDATE clarification_manage SET clari_msg='%s', clari_user ='%s' ,status ='%s' ,cdate =DATE('%s') \
         #     where utr_no='%s'"""  %(clari_msg,user,status,date1,utr_no)
         # cur.execute (query )
@@ -1192,16 +1218,14 @@ def clarificationreply():
         finalResponse['status']="failed"
         finalResponse['message']='Something went wrong.Pls try after Some time or contact Support'
         finalResponse['reason']=e.__str__()
-       
-    finally :
-        con.commit ( )
-        cur.close ( )
+    finally:
         return jsonify(finalResponse) 
 
 
 
 @app.route('/api/incident', methods=['POST'])
 def incident():
+    conn_data = get_db_conf(hosp=request.form['hospital_id'])
     data = None
     finalResponse={}
     mList=[]
@@ -1225,17 +1249,19 @@ def incident():
     )   
             
     try :
-        con=mysql.connect()
-        cur = con.cursor ( )
         query = """select he_hospital_id from hospital_employee where he_mobile=%s"""% mobileNo
-        cur.execute ( query  )
-        data = cur.fetchone()
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            data = cur.fetchone()
         if data:
             hospitalId=data[0]
             data=None
             query="""select srno,tracking_no, Short_Description ,Urgency, Status, Created_TimeStamps from incident where Reported_By='%s'"""% hospitalId
-            cur.execute ( query )
-            data = cur.fetchall()
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                data = cur.fetchall()
             if data:
                 for row in data:
                     srno=row[0]
@@ -1248,9 +1274,10 @@ def incident():
                     # finalResponse['incident']=localDict
 
                     query = """select senderId,message from incident_comment  where srno=%s""" % srno
-                    cur.execute ( query )
-                    data1=None
-                    data1 = cur.fetchall ( )
+                    with mysql.connector.connect(**conn_data) as con:
+                        cur = con.cursor()
+                        cur.execute(query)
+                        data1 = cur.fetchall ( )
                     if data1 :
                         mList1=[]
                         for row in data1:
@@ -1274,8 +1301,6 @@ def incident():
         finalResponse['reason']=e.__str__()
         
     finally :
-        con.commit ( )
-        cur.close ( )
         print ( "Connection has been closed successfully" )
         return jsonify(finalResponse)
 
@@ -1284,7 +1309,8 @@ def incident():
 
 @app.route('/api/tSignature', methods=['POST'])
 def tsignature():
-    
+    conn_data = get_db_conf(hosp=request.form['hospital_id'])
+
     mobileNo=''
     fromdate=''
     todate=''
@@ -1314,12 +1340,12 @@ def tsignature():
                 }
             )    
     try :
-        con=mysql.connect()
-        cur = con.cursor ( )
         query="""select he_hospital_id from hospital_employee where he_mobile='%s'"""%mobileNo
         print(query)
-        cur.execute (query)
-        data = cur.fetchone()
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            data = cur.fetchone()
         if data:
             hospitalId=data[0]
             data=None
@@ -1332,8 +1358,10 @@ def tsignature():
                 query="""select PatientID_TreatmentID,Mobile,Name, cdate,status, validity,path from signature_request where \
                 HospitalID='%s'"""%hospitalId
             print(query)
-            cur.execute (query)
-            data = cur.fetchall()
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                data = cur.fetchall()
             if data:
                 for row in data:
                     localDict={}
@@ -1362,7 +1390,10 @@ def tsignature():
                     if timeInterval > validity:
                         query = """UPDATE signature_request SET status ='Expired' where PatientID_TreatmentID='%s' """% patient_treatmentID
                         print(query)
-                        cur.execute(query)
+                        with mysql.connector.connect(**conn_data) as con:
+                            cur = con.cursor()
+                            cur.execute(query)
+                            con.commit()
                         localDict['status']='Expired'
                     mList.append( localDict )
                 finalResponse['result']=mList
@@ -1378,14 +1409,13 @@ def tsignature():
         finalResponse['message']='Something went wrong.Pls try after Some time or contact Support'
         finalResponse['reason']=e.__str__()
     finally :
-        con.commit()
-        cur.close()
         print ( "Connection has been closed successfully" )
         return jsonify(finalResponse)
 
 
 @app.route('/api/tSignatureCancel', methods=['POST'])
 def tsignatureusecancel():
+    conn_data = get_db_conf(hosp=request.form['hospital_id'])
     if request.method != "POST" :
         return jsonify(
                 {
@@ -1402,8 +1432,8 @@ def tsignatureusecancel():
         mNo = request.form.get('mobileNo')
     if request.form.get('PatientId') != None :
         pId = request.form.get('PatientId')
-    if request.form.get('HospitalID') != None :
-        hId = request.form.get('HospitalID')
+    if request.form.get('hospital_id') != None :
+        hId = request.form.get('hospital_id')
     if request.form.get('status') != None :
         status = request.form.get('status') 
     if request.form.get('remark') != None :
@@ -1423,18 +1453,22 @@ def tsignatureusecancel():
         query = """select status from signature_request where Mobile=%s and PatientID_TreatmentID='%s' \
             and HospitalID='%s' """ % ( mNo , pId , hId)
         print ( query )
-        cur.execute( query )
-        data=cur.fetchone()
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            data=cur.fetchone()
         if data:
             t_status=data[0]
             if t_status != 'Expired':
                 query = """UPDATE signature_request SET status ='%s', remarks='%s' where Mobile=%s \
                     and PatientID_TreatmentID='%s' and HospitalID='%s' """%(status,remark,mNo,pId,hId)
                 print(query)
-                cur.execute(query)
+                with mysql.connector.connect(**conn_data) as con:
+                    cur = con.cursor()
+                    cur.execute(query)
+                    con.commit()
                 finalResponse['status']="success"
                 finalResponse['message']="update Successfully"
-                mysql.connect().commit()
             else:
                 finalResponse['status']="failed"
                 finalResponse['message'] ='Signature request is already Expired. No action Required'
@@ -1449,8 +1483,6 @@ def tsignatureusecancel():
         finalResponse['reason']=e.__str__()
             
     finally :
-        con.commit()
-        cur.close()
         print ( "Connection has been closed successfuilly" )
         return jsonify(finalResponse)
         
@@ -1458,6 +1490,8 @@ def tsignatureusecancel():
 
 @app.route('/api/tSignatureUse', methods=['POST'])
 def tsignatureuse():
+    conn_data = get_db_conf(hosp=request.form['hospital_id'])
+
     if request.method != "POST" :
         return jsonify(
                 {
@@ -1476,8 +1510,8 @@ def tsignatureuse():
         mNo = request.form.get('mobileNo')
     if request.form.get('PatientId') != None :
         pId = request.form.get('PatientId')
-    if request.form.get('HospitalID') != None :
-        hId = request.form.get('HospitalID')
+    if request.form.get('hospital_id') != None :
+        hId = request.form.get('hospital_id')
     if request.form.get('status') != None :
         status = request.form.get('status') 
 
@@ -1490,17 +1524,20 @@ def tsignatureuse():
             )           
     try :
         data=None
-        con=mysql.connect()
-        cur = con.cursor()
         result=None
         query = """select * from signature_request where Mobile=%s and PatientID_TreatmentID='%s'"""  %(mNo,pId)
         print(query)
-        cur.execute(query)
-        data=cur.fetchall()
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(query)
+            data=cur.fetchall()
         if data:
             query = """UPDATE signature_request SET status ='%s'  where Mobile=%s and PatientID_TreatmentID='%s'"""  %(status,mNo,pId)
             print(query)
-            result=cur.execute(query)
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                con.commit()
             finalResponse['status']="success"
             finalResponse['message']='update Successfully'
         else:
@@ -1514,8 +1551,6 @@ def tsignatureuse():
         finalResponse['reason']=e.__str__()
         
     finally :
-        con.commit()
-        cur.close()
         print ( "Connection has been closed successfully" )
         return jsonify(finalResponse)         
 
