@@ -1,5 +1,3 @@
-conn_data = get_db_conf(hosp=request.form['hospital_id'])
-
-with mysql.connector.connect(**conn_data) as con:
-    cur = con.cursor()
-    cur.execute(query)
+from alert import triggerAlert
+from make_log import log_custom_data
+a = triggerAlert('MSS-1002250', '8')
