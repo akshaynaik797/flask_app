@@ -235,8 +235,8 @@ def insertuploaddocdetails():
     with mysql.connector.connect(**conn_data) as con:
         cur = con.cursor()
         cur.execute(q, (
-        data['hospitalID'], data['refNo'], data['docName'], data['docSize'], data['status'], data['approveFLag'],
-        data['docCount']))
+        data['hospitalID'], data['refNo'], data['docName'], data['docSize'], data['status'], data['approveFlag'],
+        data['docCount'], data['type']))
         con.commit()
         return response
 
