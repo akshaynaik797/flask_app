@@ -257,7 +257,7 @@ def getuploaddocdetails():
     data_fields = ("hospitalID", "refNo", "status", "approveFlag")
     for i in data_fields:
         if i in data:
-            q = q + f'and {i}=%s'
+            q = q + f' and {i}=%s'
             params = params + [data[i]]
     params = tuple(params)
     with mysql.connector.connect(**conn_data) as con:
