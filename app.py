@@ -658,6 +658,32 @@ def get_from_query():
         return jsonify(e)
 
 
+@app.route('/api/get_from_name1', methods=['POST'])
+def get_from_name1():
+    try:
+        records = []
+        data = request.form.to_dict()
+        conn_data = get_db_conf(hosp=data['hospital_id'])
+        preauth_field_list = (
+        "preauthNo", "MemberId", "p_sname", "admission_date", "dischargedate", "flag", "CurrentStatus", "cdate",
+        "up_date", "hospital_name", "p_policy")
+        q = "select preauthNo, MemberId, p_sname, admission_date, dischargedate, flag, " \
+            "CurrentStatus, cdate, up_date, hospital_name, p_policy from preauth " \
+            "where p_sname LIKE %s and insname=%s AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute(q, ('%' + data['name'] + '%', data['insid']))
+            result = cur.fetchall()
+            for row in result:
+                temp = {}
+                for k, v in zip(preauth_field_list, row):
+                    temp[k] = v
+                records.append(temp)
+        return jsonify(records)
+    except Exception as e:
+        return str(e)
+
+
 @app.route('/api/get_from_name', methods=['POST'])
 def get_from_name():
     try:
@@ -3756,5 +3782,5 @@ def EmailSend():
 
 if __name__ == '__main__':
     # app.run(threaded=True)
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=9982)
     # app.run()
