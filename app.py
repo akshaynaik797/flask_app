@@ -307,7 +307,7 @@ def getstatuslist():
     params = []
 
     if 'scode' in data:
-        q = q + 'and scode=%s'
+        q = q + ' and scode=%s'
         params = params + [data['hospitalid']]
     if 'name' in data:
         q = q + ' and name=%s'
@@ -339,7 +339,7 @@ def getinsurerlist():
     params = []
 
     if 'TPAInsurerID' in data:
-        q = q + 'and TPAInsurerID=%s'
+        q = q + ' and TPAInsurerID=%s'
         params = params + [data['TPAInsurerID']]
 
     params = tuple(params)
@@ -389,11 +389,11 @@ def getdocpath():
     params = []
 
     if 'hospitalID' in data:
-        q = q + 'and hospitalID=%s'
+        q = q + ' and hospitalID=%s'
         params = params + [data['hospitalID']]
 
     if 'process' in data:
-        q = q + 'and process=%s'
+        q = q + ' and process=%s'
         params = params + [data['process']]
 
     params = tuple(params)
@@ -661,23 +661,30 @@ def get_from_query():
 @app.route('/api/get_from_name1', methods=['POST'])
 def get_from_name1():
     try:
+        #add insurerid optional param
         records = []
         data = request.form.to_dict()
         conn_data = get_db_conf(hosp=data['hospital_id'])
         preauth_field_list = (
         "preauthNo", "MemberId", "p_sname", "admission_date", "dischargedate", "flag", "CurrentStatus", "cdate",
-        "up_date", "hospital_name", "p_policy")
+        "up_date", "hospital_name", "p_policy", "refno", "HospitalID", "MemberId", "PatientID_TreatmentID",
+        "Type_Ref", "cdate", "insurerID", "srno")
         q = "select preauthNo, MemberId, p_sname, admission_date, dischargedate, flag, " \
-            "CurrentStatus, cdate, up_date, hospital_name, p_policy from preauth " \
-            "where p_sname LIKE %s and insname=%s AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"
+            "CurrentStatus, cdate, up_date, hospital_name, p_policy, refno, HospitalID, MemberId, " \
+            "PatientID_TreatmentID, refno, cdate, insname, srno from preauth " \
+            "where p_sname LIKE %s AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"
         with mysql.connector.connect(**conn_data) as con:
             cur = con.cursor()
-            cur.execute(q, ('%' + data['name'] + '%', data['insid']))
+            cur.execute(q, ('%' + data['name'] + '%',))
             result = cur.fetchall()
             for row in result:
                 temp = {}
                 for k, v in zip(preauth_field_list, row):
                     temp[k] = v
+                temp['description'], temp['Type'] = "", ""
+                if '-' in temp['CurrentStatus']:
+                    temp['description'] = temp['CurrentStatus'].split('-')[-1].strip()
+                    temp['Type'] = temp['CurrentStatus'].split('-')[0].strip()
                 records.append(temp)
         return jsonify(records)
     except Exception as e:
