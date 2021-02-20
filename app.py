@@ -672,10 +672,10 @@ def get_from_name1():
         q = "select preauthNo, MemberId, p_sname, admission_date, dischargedate, flag, " \
             "CurrentStatus, cdate, up_date, hospital_name, p_policy, refno, HospitalID, MemberId, " \
             "PatientID_TreatmentID, refno, cdate, insname, srno from preauth " \
-            "where p_sname LIKE %s AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"
+            "where p_sname LIKE %s and HospitalID=%s AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"
         with mysql.connector.connect(**conn_data) as con:
             cur = con.cursor()
-            cur.execute(q, ('%' + data['name'] + '%',))
+            cur.execute(q, ('%' + data['name'] + '%', data['hospital_id']))
             result = cur.fetchall()
             for row in result:
                 temp = {}
