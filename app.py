@@ -694,8 +694,18 @@ def get_from_name1():
 @app.route('/api/get_from_name', methods=['POST'])
 def get_from_name():
     try:
-        conn_data = get_db_conf(hosp=request.form['hospital_id'])
-        # l_date = CURDATE() - 15
+        hosp_id = request.form['hospital_id']
+        conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+                     'user': "admin",
+                     'password': "Welcome1!",
+                     'database': 'portals'}
+        with mysql.connector.connect(**conn_data) as con:
+            cur = con.cursor()
+            cur.execute("select hospitalId from hospitallist where hospitalName=%s limit 1", (request.form['hospital_id'],))
+            result = cur.fetchone()
+            if result is not None:
+                hosp_id = result[0]
+        conn_data = get_db_conf(hosp=hosp_id)
         if request.form['insid'] != "I14":
             query = """SELECT
                     refno AS ReferenceNo,
@@ -712,6 +722,7 @@ def get_from_name():
                     preauth
                 WHERE
                     p_sname LIKE '%""" + request.form['name'] + """%'
+                        AND HospitalID  = '""" + hosp_id + """'
                         AND insname  = '""" + request.form['insid'] + """'
                         AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"""
         else:
@@ -731,6 +742,7 @@ def get_from_name():
                 WHERE
                     p_sname LIKE '%""" + request.form['name'] + """%'
                         AND (insname  = 'I14' OR insname  = 'I04')
+                        AND HospitalID  = '""" + hosp_id + """'
                         AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"""
 
         with mysql.connector.connect(**conn_data) as con:
