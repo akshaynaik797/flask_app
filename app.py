@@ -7,7 +7,7 @@ from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-from dbconf import get_db_conf
+from dbconf import get_db_conf, portals_db
 from gmailMailSender import GMAIL_SENDER
 from make_log import log_exceptions, log_data
 from otpgenerator import OtpGenerator
@@ -657,6 +657,58 @@ def get_from_query():
     except Exception as e:
         return jsonify(e)
 
+
+@app.route('/getfrompreauth', methods=['POST'])
+def getfrompreauth():
+    q = "SELECT hospitalID FROM hospitallist where status = 1"
+    records, hos_ids = [], []
+    data = request.form.to_dict()
+    with mysql.connector.connect(**portals_db) as con:
+        cur = con.cursor()
+        cur.execute(q)
+        result = cur.fetchall()
+        hos_ids = [i[0] for i in result]
+    preauth_field_list = (
+    "preauthNo", "MemberId", "p_sname", "admission_date", "dischargedate", "flag", "CurrentStatus", "cdate",
+    "up_date", "hospital_name", "p_policy", "refno", "HospitalID", "MemberId", "PatientID_TreatmentID",
+    "Type_Ref", "cdate", "insurerID", "srno")
+    main = "select preauthNo, MemberId, p_sname, admission_date, dischargedate, flag, " \
+        "CurrentStatus, cdate, up_date, hospital_name, p_policy, refno, HospitalID, MemberId, " \
+        "PatientID_TreatmentID, refno, cdate, insname, srno from preauth " \
+        "where HospitalID=%s and flag='Portal_submit' and currentStatus like %s"
+    for hid in hos_ids:
+        conn_data = get_db_conf(hosp=hid)
+        for i in data['currentStatus'].split(','):
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(main, (hid, '%' + i + '%'))
+                result = cur.fetchall()
+                for row in result:
+                    temp = {}
+                    for k, v in zip(preauth_field_list, row):
+                        temp[k] = v
+                    temp['description'], temp['Type'] = "", ""
+                    if '-' in temp['CurrentStatus']:
+                        temp['description'] = temp['CurrentStatus'].split('-')[-1].strip()
+                        temp['Type'] = temp['CurrentStatus'].split('-')[0].strip()
+                    temp['transactionID'], temp['person_name'] = "", ""
+                    q = "select transactionID, person_name from hospitalTLog where Type_Ref=%s union select transactionID, person_name from hospitalTLogDel where Type_Ref=%s"
+                    with mysql.connector.connect(**portals_db) as con:
+                        cur = con.cursor()
+                        cur.execute(q, (temp['refno'], temp['refno']))
+                        r = cur.fetchall()
+                        if len(r) > 0:
+                            temp['transactionID'], temp['person_name'] = r[-1][0], r[-1][-1]
+                        cur.execute("select name from insurer_tpa_master where TPAInsurerID=%s limit 1",
+                                    (temp['insurerID'],))
+                        r1 = cur.fetchone()
+                        if r1 is not None:
+                            temp['insurer_tpa'] = r1[0]
+                    for i in preauth_field_list:
+                        if i not in temp:
+                            temp[i] = ""
+                    records.append(temp)
+    return jsonify(records)
 
 @app.route('/api/get_from_name1', methods=['POST'])
 def get_from_name1():
