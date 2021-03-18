@@ -602,7 +602,7 @@ def get_from_portal_submitted():
                 AND pa.flag IN ('Portal_Submit')
 		AND ( ss.flagVerify != '1' or ss.flagVerify is null )
                 AND STR_TO_DATE(pa.up_date, '%d/%m/%y') >= STR_TO_DATE('""" + request.form[
-            'date'] + """', '%d/%m/%y')"""
+            'date'] + """', '%d/%m/%y') limit """ + request.form['count']
         with mysql.connector.connect(**conn_data) as con:
             cur = con.cursor()
             cur.execute(query)
@@ -708,6 +708,14 @@ def getfrompreauth():
                         if i not in temp:
                             temp[i] = ""
                     records.append(temp)
+    for j in range(len(records) - 1):
+        for i in range(len(records) - 1):
+            a = datetime.strptime(records[i]['cdate'], '%d/%m/%Y %H:%M:%S')
+            b = datetime.strptime(records[i+1]['cdate'], '%d/%m/%Y %H:%M:%S')
+            if a < b:
+                t = records[i+1]['cdate']
+                records[i+1]['cdate'] = records[i]['cdate']
+                records[i]['cdate'] = t
     return jsonify(records)
 
 @app.route('/api/get_from_name1', methods=['POST'])

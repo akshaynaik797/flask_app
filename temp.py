@@ -1,3 +1,4 @@
-from alert import triggerAlert
-from make_log import log_custom_data
-a = triggerAlert('MSS-1002250', '8')
+a = '24/02/2021 14:41:48'
+from datetime import datetime
+b = datetime.strptime(a, '%d/%m/%Y %H:%M:%S')
+pass
