@@ -568,53 +568,73 @@ def update_ssdoc():
 
 @app.route('/api/get_portal_submitted', methods=['POST'])
 def get_from_portal_submitted():
-    try:
-        conn_data = get_db_conf(hosp=request.form['hospital_id'])
-        tempdict = {}
-        query = """SELECT 
-            pa.PatientID_TreatmentID AS pID,
-            pa.refno AS referenceNo,
-            pa.preauthNo AS alNo,
-            pa.MemberId AS memberID,
-            pa.HospitalID AS hospitalID,
-            pa.p_sname AS ptName,
-            ss.stcdate AS entryDate,
-            pa.admission_date AS DOA,
-            pa.dischargedate AS DOD,
-            pa.CurrentStatus AS currentStatus,
-            imd.name AS insurerTpaName,
-            pa.insname AS insurerTPA,
-            pa.flag AS submitType,
-            ss.file_path AS filePath,
-            ss.date_time AS fileDateTime,
-            ss.flagVerify AS isVerify,
-	    ss.srno AS srno
-        FROM
-            preauth pa
-                LEFT JOIN
-            insurer_tpa_master imd ON pa.insname = imd.TPAInsurerID
-                LEFT JOIN
-            ssDoc ss ON pa.PatientID_TreatmentID = ss.PatientID_TreatmentID
-                AND pa.refno = ss.refno
-                 WHERE
-            pa.CurrentStatus like '%Sent To TPA/ Insurer%'
-                AND pa.show = 1
-                AND pa.flag IN ('Portal_Submit')
-		AND ( ss.flagVerify != '1' or ss.flagVerify is null )
-                AND STR_TO_DATE(pa.up_date, '%d/%m/%y') >= STR_TO_DATE('""" + request.form[
-            'date'] + """', '%d/%m/%y') limit """ + request.form['count']
-        with mysql.connector.connect(**conn_data) as con:
+    hlist, temp_list = [], []
+    if 'hospital_id' not in request.form:
+        with mysql.connector.connect(**portals_db) as con:
             cur = con.cursor()
-            cur.execute(query)
-            data = cur.fetchall()
-        for i, j in enumerate(data):
-            tempdict[i] = {'pID': j[0], 'referenceNo': j[1], 'alNo': j[2], 'memberID': j[3], 'hospitalID': j[4],
-                           'ptName': j[5], 'entryDate': j[6], 'DOA': j[7], 'DOD': j[8], 'currentStatus': j[9],
-                           'insurerTpaName': j[10], 'insurerTPA': j[11], 'submitType': j[12], 'filePath': j[13],
-                           'fileDateTime': j[14], 'isVerify': j[15], 'srno': j[16]}
-        return jsonify(tempdict)
-    except Exception as e:
-        return str(e)
+            q = "select distinct host, dbName from dbConfiguration where environment = 'live'"
+            cur.execute(q)
+            result = cur.fetchall()
+
+            for host, dbname in result:
+                q = 'SELECT hospitalID FROM dbConfiguration where environment="live" and host=%s and dbName=%s limit 1'
+                cur.execute(q, (host, dbname))
+                result1 = cur.fetchone()
+                if result1 is not None:
+                    hlist.append(result1[0])
+    else:
+        hlist.append(request.form['hospital_id'])
+    for hosp in hlist:
+        try:
+            if hosp == '8':
+                continue
+            conn_data = get_db_conf(hosp=hosp)
+            tempdict = {}
+            query = """SELECT 
+                pa.PatientID_TreatmentID AS pID,
+                pa.refno AS referenceNo,
+                pa.preauthNo AS alNo,
+                pa.MemberId AS memberID,
+                pa.HospitalID AS hospitalID,
+                pa.p_sname AS ptName,
+                ss.stcdate AS entryDate,
+                pa.admission_date AS DOA,
+                pa.dischargedate AS DOD,
+                pa.CurrentStatus AS currentStatus,
+                imd.name AS insurerTpaName,
+                pa.insname AS insurerTPA,
+                pa.flag AS submitType,
+                ss.file_path AS filePath,
+                ss.date_time AS fileDateTime,
+                ss.flagVerify AS isVerify,
+            ss.srno AS srno
+            FROM
+                preauth pa
+                    LEFT JOIN
+                insurer_tpa_master imd ON pa.insname = imd.TPAInsurerID
+                    LEFT JOIN
+                ssDoc ss ON pa.PatientID_TreatmentID = ss.PatientID_TreatmentID
+                    AND pa.refno = ss.refno
+                     WHERE
+                pa.CurrentStatus like '%Sent To TPA/ Insurer%'
+                    AND pa.show = 1
+                    AND pa.flag IN ('Portal_Submit')
+            AND ( ss.flagVerify != '1' or ss.flagVerify is null )
+                    AND STR_TO_DATE(pa.up_date, '%d/%m/%y') >= STR_TO_DATE('""" + request.form[
+                'date'] + """', '%d/%m/%y') order by STR_TO_DATE(pa.up_date, '%d/%m/%y') desc limit """ + request.form['count']
+            with mysql.connector.connect(**conn_data) as con:
+                cur = con.cursor()
+                cur.execute(query)
+                data = cur.fetchall()
+            for i, j in enumerate(data):
+                row = {'pID': j[0], 'referenceNo': j[1], 'alNo': j[2], 'memberID': j[3], 'hospitalID': j[4],
+                               'ptName': j[5], 'entryDate': j[6], 'DOA': j[7], 'DOD': j[8], 'currentStatus': j[9],
+                               'insurerTpaName': j[10], 'insurerTPA': j[11], 'submitType': j[12], 'filePath': j[13],
+                               'fileDateTime': j[14], 'isVerify': j[15], 'srno': j[16]}
+                temp_list.append(row)
+        except:
+            log_exceptions(hosp=hosp, api='/api/get_portal_submitted')
+    return jsonify(temp_list)
 
 
 @app.route('/api/get_from_query')
