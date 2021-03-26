@@ -141,15 +141,16 @@ def getreminders():
 
 @app.route("/getmailslog", methods=["POST"])
 def getmailslog():
+    #add type and status in select clause
     records, result = [], []
     fields = ('srno', 'PatientID_TreatmentID', 'status', 'from_mail', 'to_mail', 'subjectline', 'message', 'sentornot',
               'saveornot', 'pagerror', 'requestime', 'responsetime', 'cdate')
     data = request.form.to_dict()
     conn_data = get_db_conf(hosp=request.form['hospitalID'])
-    q = "select * from mail_log where PatientID_TreatmentID=%s"
+    q = "select * from mail_log where PatientID_TreatmentID=%s and type=%s and status=%s"
     with mysql.connector.connect(**conn_data) as con:
         cur = con.cursor()
-        cur.execute(q, (data['refNo'],))
+        cur.execute(q, (data['refNo'], data['type'], data['status']))
         result = cur.fetchall()
     for i in result:
         temp = {}
@@ -231,12 +232,12 @@ def insertuploaddocdetails():
                  'password': "Welcome1!",
                  'database': 'portals'}
     data = request.form.to_dict()
-    q = "insert into documentDetails (hospitalID, refNo, docName, docSize, status, approveFLag, docCount, `type`) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+    q = "insert into documentDetails (hospitalID, refNo, docName, docSize, status, approveFLag, docCount, `type`, transactionID) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
     with mysql.connector.connect(**conn_data) as con:
         cur = con.cursor()
         cur.execute(q, (
         data['hospitalID'], data['refNo'], data['docName'], data['docSize'], data['status'], data['approveFlag'],
-        data['docCount'], data['type']))
+        data['docCount'], data['type'], data['transactionID']))
         con.commit()
         return response
 
@@ -254,7 +255,7 @@ def getuploaddocdetails():
     q = "select `srno`, `hospitalID`, `refNo`, `docName`, `docSize`, `docCount`, `status`, `approveFlag`, `cdate`, " \
         "`type` from documentDetails where srno is not null"
     params = []
-    data_fields = ("hospitalID", "refNo", "status", "approveFlag")
+    data_fields = ("hospitalID", "refNo", "status", "approveFlag", "type")
     for i in data_fields:
         if i in data:
             q = q + f' and {i}=%s'
