@@ -232,12 +232,12 @@ def insertuploaddocdetails():
                  'password': "Welcome1!",
                  'database': 'portals'}
     data = request.form.to_dict()
-    q = "insert into documentDetails (hospitalID, refNo, docName, docSize, status, approveFLag, docCount, `type`, transactionID) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    q = "insert into documentDetails (hospitalID, refNo, docName, docSize, status, approveFLag, docCount, `type`, transactionID, cdate) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
     with mysql.connector.connect(**conn_data) as con:
         cur = con.cursor()
         cur.execute(q, (
         data['hospitalID'], data['refNo'], data['docName'], data['docSize'], data['status'], data['approveFlag'],
-        data['docCount'], data['type'], data['transactionID']))
+        data['docCount'], data['type'], data['transactionID'], datetime.now().strftime('%d/%m/%Y %H:%M:%S')))
         con.commit()
         return response
 
@@ -753,7 +753,9 @@ def get_from_name1():
         q = "select preauthNo, MemberId, p_sname, admission_date, dischargedate, flag, " \
             "CurrentStatus, cdate, up_date, hospital_name, p_policy, refno, HospitalID, MemberId, " \
             "PatientID_TreatmentID, refno, cdate, insname, srno from preauth " \
-            "where p_sname LIKE %s and HospitalID=%s AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"
+            "where p_sname LIKE %s and HospitalID=%s"
+        if 'no_limit' in data:
+            q = q + " AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"
         with mysql.connector.connect(**conn_data) as con:
             cur = con.cursor()
             cur.execute(q, ('%' + data['name'] + '%', data['hospital_id']))
