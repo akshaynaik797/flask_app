@@ -19,6 +19,6 @@ def get_db_conf(**kwargs):
                 conf_data[key] = value
             return conf_data
 if __name__ == '__main__':
-    with mysql.connector.connect(**get_db_conf(hosp='8900080427990')) as con:
+    with mysql.connector.connect(**get_db_conf(hosp='8900080123380')) as con:
         cur = con.cursor()
         pass

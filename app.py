@@ -143,8 +143,8 @@ def getreminders():
 def getmailslog():
     #add type and status in select clause
     records, result = [], []
-    fields = ('srno', 'PatientID_TreatmentID', 'status', 'from_mail', 'to_mail', 'subjectline', 'message', 'sentornot',
-              'saveornot', 'pagerror', 'requestime', 'responsetime', 'cdate')
+    fields = ("srno","PatientID_TreatmentID","type","status","from_mail","to_mail","subjectline","message",
+              "sentornot","saveornot","pagerror","requestime","responsetime","transactionID","cdate")
     data = request.form.to_dict()
     conn_data = get_db_conf(hosp=request.form['hospitalID'])
     q = "select * from mail_log where PatientID_TreatmentID=%s and type=%s and status=%s"
