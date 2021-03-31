@@ -147,10 +147,15 @@ def getmailslog():
               "sentornot","saveornot","pagerror","requestime","responsetime","transactionID","cdate")
     data = request.form.to_dict()
     conn_data = get_db_conf(hosp=request.form['hospitalID'])
-    q = "select * from mail_log where PatientID_TreatmentID=%s and type=%s and status=%s"
+    if 'transactionID' not in data:
+        q = "select * from mail_log where PatientID_TreatmentID=%s and type=%s and status=%s"
+        params = (data['refNo'], data['type'], data['status'])
+    else:
+        q = "select * from mail_log where transactionID=%s"
+        params = (data['transactionID'],)
     with mysql.connector.connect(**conn_data) as con:
         cur = con.cursor()
-        cur.execute(q, (data['refNo'], data['type'], data['status']))
+        cur.execute(q, params)
         result = cur.fetchall()
     for i in result:
         temp = {}
@@ -245,7 +250,7 @@ def insertuploaddocdetails():
 @app.route("/getuploaddocdetails", methods=["POST"])
 def getuploaddocdetails():
     result, fields = [], (
-    "srno", "hospitalID", "refNo", "docName", "docSize", "docCount", "status", "approveFlag", "cdate", "type")
+    "srno", "hospitalID", "refNo", "docName", "docSize", "docCount", "status", "approveFlag", "transactionID", "cdate", "type")
     records = []
     conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
@@ -255,7 +260,7 @@ def getuploaddocdetails():
     q = "select `srno`, `hospitalID`, `refNo`, `docName`, `docSize`, `docCount`, `status`, `approveFlag`, `cdate`, " \
         "`type` from documentDetails where srno is not null"
     params = []
-    data_fields = ("hospitalID", "refNo", "status", "approveFlag", "type")
+    data_fields = ("hospitalID", "refNo", "status", "approveFlag", "type", "transactionID")
     for i in data_fields:
         if i in data:
             q = q + f' and {i}=%s'
@@ -754,7 +759,7 @@ def get_from_name1():
             "CurrentStatus, cdate, up_date, hospital_name, p_policy, refno, HospitalID, MemberId, " \
             "PatientID_TreatmentID, refno, cdate, insname, srno from preauth " \
             "where p_sname LIKE %s and HospitalID=%s"
-        if 'no_limit' in data:
+        if 'no_limit' not in data:
             q = q + " AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"
         with mysql.connector.connect(**conn_data) as con:
             cur = con.cursor()
