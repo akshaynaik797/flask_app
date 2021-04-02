@@ -782,6 +782,9 @@ def get_from_name1():
 @app.route('/api/get_from_name', methods=['POST'])
 def get_from_name():
     try:
+        since = '5'
+        if 'since' in request.form:
+            since = request.form['since']
         hosp_id = request.form['hospital_id']
         conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                      'user': "admin",
@@ -809,10 +812,11 @@ def get_from_name():
                 FROM
                     preauth
                 WHERE
-                    p_sname LIKE '%""" + request.form['name'] + """%'
-                        AND HospitalID  = '""" + hosp_id + """'
-                        AND insname  = '""" + request.form['insid'] + """'
-                        AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"""
+                    p_sname LIKE %s
+                        AND HospitalID=%s
+                        AND insname=%s  
+                        AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval %s day"""
+            params = ('%' + request.form['name'] + '%', hosp_id, request.form['insid'], since)
         else:
             query = """SELECT
                     refno AS ReferenceNo,
@@ -828,14 +832,15 @@ def get_from_name():
                 FROM
                     preauth
                 WHERE
-                    p_sname LIKE '%""" + request.form['name'] + """%'
+                    p_sname LIKE %s
                         AND (insname  = 'I14' OR insname  = 'I04')
-                        AND HospitalID  = '""" + hosp_id + """'
-                        AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"""
+                        AND HospitalID=%s 
+                        AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval %s day"""
+            params = ('%' + request.form['name'] + '%', hosp_id, since)
 
         with mysql.connector.connect(**conn_data) as con:
             cur = con.cursor()
-            cur.execute(query)
+            cur.execute(query, params)
             tempdict = {}
             data = cur.fetchall()
         for i, j in enumerate(data):
