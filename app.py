@@ -432,7 +432,7 @@ def deletehospitaltlog():
             cur.execute(q, (data['refNo'],))
             result = cur.fetchall()
             for i in result:
-                i = tuple(list(i)[1:])
+                i = tuple(list(i)[1:-1])
                 q = "insert into hospitalTLogDel (`PatientID_TreatmentID`,`transactionID`,`Type_Ref`,`Type`,`status`,`HospitalID`,`cdate`,`person_name`,`smsTrigger`,`pushTrigger`,`insurerID`,`fStatus`,`fLock`,`lock`,`error`,`errorDescription`) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
                 cur.execute(q, i)
             q = "delete from hospitalTLog where Type_Ref=%s"
