@@ -574,7 +574,6 @@ def update_ssdoc():
 
 @app.route('/api/get_portal_submitted', methods=['POST'])
 def get_from_portal_submitted():
-    link_text = request.url_root + 'api/downloadfile?filename='
     hlist, temp_list = [], []
     if 'hospital_id' not in request.form:
         with mysql.connector.connect(**portals_db) as con:
@@ -638,6 +637,7 @@ def get_from_portal_submitted():
                                'ptName': j[5], 'entryDate': j[6], 'DOA': j[7], 'DOD': j[8], 'currentStatus': j[9],
                                'insurerTpaName': j[10], 'insurerTPA': j[11], 'submitType': j[12], 'filePath': j[13],
                                'fileDateTime': j[14], 'isVerify': j[15], 'srno': j[16]}
+                link_text = get_api_url(row['hospitalID'], 'screenshotpath')
                 row['filePath'] = link_text + row['filePath']
                 temp_list.append(row)
         except:
@@ -3913,7 +3913,19 @@ def EmailSend():
         print("Connection has been closed successfuilly")
         return jsonify(finalResponse)
 
-
+def get_api_url(hosp, process):
+    api_conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+                 'user': "admin",
+                 'password': "Welcome1!",
+                 'database': 'portals'}
+    with mysql.connector.connect(**api_conn_data) as con:
+        cur = con.cursor()
+        query = 'select apiLink from apisConfig where hospitalID=%s and processName=%s limit 1;'
+        cur.execute(query, (hosp, process))
+        result = cur.fetchone()
+        if result is not None:
+            return result[0]
+    return ''
 if __name__ == '__main__':
     # app.run(threaded=True)
     app.run(host="0.0.0.0", port=9982)
