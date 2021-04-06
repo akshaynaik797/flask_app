@@ -574,6 +574,7 @@ def update_ssdoc():
 
 @app.route('/api/get_portal_submitted', methods=['POST'])
 def get_from_portal_submitted():
+    link_text = request.url_root + 'api/downloadfile?filename='
     hlist, temp_list = [], []
     if 'hospital_id' not in request.form:
         with mysql.connector.connect(**portals_db) as con:
@@ -637,6 +638,7 @@ def get_from_portal_submitted():
                                'ptName': j[5], 'entryDate': j[6], 'DOA': j[7], 'DOD': j[8], 'currentStatus': j[9],
                                'insurerTpaName': j[10], 'insurerTPA': j[11], 'submitType': j[12], 'filePath': j[13],
                                'fileDateTime': j[14], 'isVerify': j[15], 'srno': j[16]}
+                row['filePath'] = link_text + row['filePath']
                 temp_list.append(row)
         except:
             log_exceptions(hosp=hosp, api='/api/get_portal_submitted')
@@ -743,6 +745,26 @@ def getfrompreauth():
                 records[i+1]['cdate'] = records[i]['cdate']
                 records[i]['cdate'] = t
     return jsonify(records)
+
+@app.route("/api/downloadfile")
+def get_file():
+    """Download a file."""
+    if request.args['filename'] != None:
+        filepath = request.args['filename']
+        print("path=", filepath)
+        # log_api_data('filepath', filepath)
+        # filepath1=r"C:\Users\91798\Desktop\trial_shikha-master2\hdfc\attachments_pdf_denial\PreAuthDenialLe_RC-HS19-10809032_1_202_20200129142830250_19897.pdf"
+        filepath = filepath.replace("\\", "/")
+        mylist = filepath.split('/')
+        filename = mylist[-1]
+        index = 0
+        dirname = ''
+        for x in mylist:
+            index = index + 1
+            if index != len(mylist):
+                dirname = dirname + x + '/'
+        # return send_from_directory(r"C:\Users\91798\Desktop\download\templates", filename='ASHISHKUMAR_IT.pdf', as_attachment=True)
+        return send_from_directory(dirname, filename=filename, as_attachment=True, mimetype='application/pdf')
 
 @app.route('/api/get_from_name1', methods=['POST'])
 def get_from_name1():
