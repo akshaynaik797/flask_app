@@ -804,6 +804,7 @@ def get_from_name1():
 @app.route('/api/get_from_name', methods=['POST'])
 def get_from_name():
     try:
+        form_data = request.form.to_dict()
         since = '5'
         if 'since' in request.form:
             since = request.form['since']
@@ -819,26 +820,48 @@ def get_from_name():
             if result is not None:
                 hosp_id = result[0]
         conn_data = get_db_conf(hosp=hosp_id)
-        if request.form['insid'] != "I14":
-            query = """SELECT
-                    refno AS ReferenceNo,
-                    preauthNo AS PreAuthID,
-                    p_sname AS PatientName,
-                    admission_date AS DateOfAdmision,
-                    dischargedate AS DateOfDischarge,
-                    insname AS InsurerTPAID,
-                    CurrentStatus AS Status,
-                    p_policy as PolicyNo,
-                    MemberID,
-                    `show`
-                FROM
-                    preauth
-                WHERE
-                    p_sname LIKE %s
-                        AND HospitalID=%s
-                        AND insname=%s  
-                        AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval %s day"""
-            params = ('%' + request.form['name'] + '%', hosp_id, request.form['insid'], since)
+
+        if 'insid' in form_data:
+            if request.form['insid'] != "I14":
+                query = """SELECT
+                        refno AS ReferenceNo,
+                        preauthNo AS PreAuthID,
+                        p_sname AS PatientName,
+                        admission_date AS DateOfAdmision,
+                        dischargedate AS DateOfDischarge,
+                        insname AS InsurerTPAID,
+                        CurrentStatus AS Status,
+                        p_policy as PolicyNo,
+                        MemberID,
+                        `show`
+                    FROM
+                        preauth
+                    WHERE
+                        p_sname LIKE %s
+                            AND HospitalID=%s
+                            AND insname=%s  
+                            AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval %s day"""
+                params = ('%' + request.form['name'] + '%', hosp_id, request.form['insid'], since)
+            else:
+                query = """SELECT
+                        refno AS ReferenceNo,
+                        preauthNo AS PreAuthID,
+                        p_sname AS PatientName,
+                        admission_date AS DateOfAdmision,
+                        dischargedate AS DateOfDischarge,
+                        insname AS InsurerTPAID,
+                        CurrentStatus AS Status,
+                        p_policy as PolicyNo,
+                        MemberID,
+                        `show`
+                    FROM
+                        preauth
+                    WHERE
+                        p_sname LIKE %s
+                            AND (insname  = 'I14' OR insname  = 'I04')
+                            AND HospitalID=%s 
+                            AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval %s day"""
+                params = ('%' + request.form['name'] + '%', hosp_id, since)
         else:
             query = """SELECT
                     refno AS ReferenceNo,
@@ -855,8 +878,7 @@ def get_from_name():
                     preauth
                 WHERE
                     p_sname LIKE %s
-                        AND (insname  = 'I14' OR insname  = 'I04')
-                        AND HospitalID=%s 
+                        AND HospitalID=%s
                         AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval %s day"""
             params = ('%' + request.form['name'] + '%', hosp_id, since)
 
