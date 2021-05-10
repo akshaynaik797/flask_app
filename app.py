@@ -781,7 +781,7 @@ def get_from_name1():
             "CurrentStatus, cdate, up_date, hospital_name, p_policy, refno, HospitalID, MemberId, " \
             "PatientID_TreatmentID, refno, cdate, insname, srno from preauth " \
             "where p_sname LIKE %s and HospitalID=%s"
-        if 'no_limit' == '':
+        if 'no_limit' not in data:
             q = q + " AND STR_TO_DATE(up_date, '%d/%m/%Y') >= now() - interval 5 day"
         with mysql.connector.connect(**conn_data) as con:
             cur = con.cursor()
