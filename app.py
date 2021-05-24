@@ -100,7 +100,7 @@ def getsmslog():
     fields = (
     'snno', 'mobileno', 'type', 'notification_text', 'sms', 'push', 'timestamp', 'messageid', 'error', 'device_token',
     'ref_no')
-    conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
@@ -232,7 +232,7 @@ def insertuploaddocdetails():
         "status": "success",
         "message": "Data Inserted Successfully"
     }
-    conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
@@ -252,7 +252,7 @@ def getuploaddocdetails():
     result, fields = [], (
     "srno", "hospitalID", "refNo", "docName", "docSize", "docCount", "status", "approveFlag", "transactionID", "cdate", "type")
     records = []
-    conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
@@ -283,7 +283,7 @@ def getstatustags():
     result, fields = [], (
     "srno", "hospitalID", "refNo", "docName", "docSize", "docCount", "status", "approveFlag", "cdate")
     records = []
-    conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
@@ -305,7 +305,7 @@ def getstatuslist():
     result, fields = [], ("srno","scode","name","descr","cdate")
     records = []
     data = request.form.to_dict()
-    conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
@@ -337,7 +337,7 @@ def getinsurerlist():
                           "filesize","fileExtensions","otherdoc_limit","Cumulative_flag")
     records = []
     data = request.form.to_dict()
-    conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
@@ -366,7 +366,7 @@ def gethospitalslist():
                           "filesize","fileExtensions","otherdoc_limit","Cumulative_flag")
     records = []
     data = request.form.to_dict()
-    conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
@@ -387,7 +387,7 @@ def getdocpath():
     result, fields = [],  ("srno", "hospitalID", "process", "docPath")
     records = []
     data = request.form.to_dict()
-    conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
@@ -421,7 +421,7 @@ def deletehospitaltlog():
                 'smsTrigger', 'pushTrigger', 'lock', 'error',
                 'errorDescription', 'insurerID', 'fStatus', 'fLock', 'transactionID')
     data = request.form.to_dict()
-    conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
@@ -448,7 +448,7 @@ def get_log():
                   'insurer', 'process', 'step', 'status', 'message', 'url')
     records = []
     params = []
-    conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
@@ -809,7 +809,7 @@ def get_from_name():
         if 'since' in request.form:
             since = request.form['since']
         hosp_id = request.form['hospital_id']
-        conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+        conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                      'user': "admin",
                      'password': "Welcome1!",
                      'database': 'portals'}
@@ -3540,7 +3540,7 @@ def pclaim():
 
 @app.route('/api/HospitalList', methods=['POST'])
 def hospitalList():
-    conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
@@ -3936,7 +3936,7 @@ def EmailSend():
         return jsonify(finalResponse)
 
 def get_api_url(hosp, process):
-    api_conn_data = {'host': "iclaimdev.caq5osti8c47.ap-south-1.rds.amazonaws.com",
+    api_conn_data = {'host': "database-iclaim.caq5osti8c47.ap-south-1.rds.amazonaws.com",
                  'user': "admin",
                  'password': "Welcome1!",
                  'database': 'portals'}
